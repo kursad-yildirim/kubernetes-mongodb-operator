@@ -1,0 +1,12 @@
+apiVersion: app.1k.local/v1alpha1
+kind: TuffMongoDB
+metadata:
+  labels:
+    app.kubernetes.io/name: tuffmongodb
+    app.kubernetes.io/instance: tuffmongodb-sample
+    app.kubernetes.io/part-of: kubernetes-mongodb-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kubernetes-mongodb-operator
+  name: tuffmongodb-sample
+spec:
+  # TODO(user): Add fields here
