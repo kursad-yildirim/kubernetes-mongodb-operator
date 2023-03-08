@@ -7,6 +7,18 @@ metadata:
     app.kubernetes.io/part-of: kubernetes-mongodb-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: kubernetes-mongodb-operator
-  name: tuffmongodb-sample
+  name: mongodb-tuff-1
 spec:
-  # TODO(user): Add fields here
+  mongoContainerName: mongodbcontainer
+  mongoImage: image-registry.openshift-image-registry.svc:5000/tuff/busybox
+  mongoPorts:
+  - containerPort: 27017
+    name: mongodbport
+    protocol: TCP
+  mongoReplicas: 1
+  mongoVolumeMounts:
+  - mountPath: /usr/mongo/data
+    name: mongo-db-data
+  mongoVolumes:
+  - name: mongo-db-data
+    volumeSource: pvc-mongo-db-data

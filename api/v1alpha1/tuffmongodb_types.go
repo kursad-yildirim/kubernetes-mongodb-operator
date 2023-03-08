@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,17 +26,18 @@ import (
 
 // TuffMongoDBSpec defines the desired state of TuffMongoDB
 type TuffMongoDBSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of TuffMongoDB. Edit tuffmongodb_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	MongoReplicas      int32                  `json:"mongoReplicas,omitempty"`
+	MongoImage         string                 `json:"mongoImage,omitempty"`
+	MongoContainerName string                 `json:"mongoContainerName,omitEmpty"`
+	MongoPorts         []corev1.ContainerPort `json:"mongoPorts,omitEmpty"`
+	MongoVolumeMounts  []corev1.VolumeMount   `json:"mongoVolumeMounts,omitEmpty"`
+	MongoVolumes       []corev1.Volume        `json:"mongoVolumes,omitEmpty"`
 }
 
 // TuffMongoDBStatus defines the observed state of TuffMongoDB
 type TuffMongoDBStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	MongoPodNames          []string `json:"mongoPodNames"`
+	MongoAvailableReplicas int32    `json:"mongoAvailableReplicas"`
 }
 
 //+kubebuilder:object:root=true
