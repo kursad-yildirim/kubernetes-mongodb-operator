@@ -2,21 +2,25 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	//	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	appv1alpha1 "github.com/kursad-yildirim/kubernetes-mongodb-operator/api/v1alpha1"
 	"github.com/kursad-yildirim/kubernetes-mongodb-operator/manifests/deployment"
+	//	"github.com/kursad-yildirim/kubernetes-mongodb-operator/manifests/pod"
 
+	//	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	//	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//	"k8s.io/apimachinery/pkg/labels"
+	//
+	// "reflect"
+	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // TuffMongoDBReconciler reconciles a TuffMongoDB object
@@ -30,7 +34,6 @@ type TuffMongoDBReconciler struct {
 //+kubebuilder:rbac:groups=app.1k.local,resources=tuffmongodbs/finalizers,verbs=update
 
 func (r *TuffMongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrllog.FromContext(ctx)
 
 	instance := &appv1alpha1.TuffMongoDB{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
@@ -40,101 +43,51 @@ func (r *TuffMongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		return ctrl.Result{}, err
 	}
-	tuffMongoDB := instance
-	mongoPodList := &corev1.PodList{}
-	tmLabels := map[string]string{
-		"app":     tuffMongoDB.Name,
-		"version": "v0.1",
-	}
-	tmLabelSelector := labels.SelectorFromSet(tmLabels)
-	tmListOptions := &client.ListOptions{Namespace: tuffMongoDB.Namespace, LabelSelector: tmLabelSelector}
-	if err = r.List(context.TODO(), mongoPodList, tmListOptions); err != nil {
-		return ctrl.Result{}, err
-	}
-	var availableMongoPods []corev1.Pod
-	for _, pod := range mongoPodList.Items {
-		if pod.ObjectMeta.DeletionTimestamp != nil {
-			continue
-		}
-		if pod.Status.Phase == corev1.PodRunning || pod.Status.Phase == corev1.PodPending {
-			availableMongoPods = append(availableMongoPods, pod)
-		}
-	}
-	numAvailableMongoPods := int32(len(availableMongoPods))
-	availableMongoPodNames := []string{}
-	for _, pod := range availableMongoPods {
-		availableMongoPodNames = append(availableMongoPodNames, pod.ObjectMeta.Name)
-	}
-	status := appv1alpha1.TuffMongoDBStatus{
-		MongoPodNames:          availableMongoPodNames,
-		MongoAvailableReplicas: numAvailableMongoPods,
-	}
-	if !reflect.DeepEqual(tuffMongoDB.Status, status) {
-		tuffMongoDB.Status = status
-		err = r.Status().Update(context.TODO(), tuffMongoDB)
-		if err != nil {
-			log.Error(err, "Failed  to update tuffMongoDB status.")
-			return ctrl.Result{}, err
-		}
-	}
-
-	if numAvailableMongoPods > tuffMongoDB.Spec.MongoReplicas {
-		log.Info("Scaling down mongodb pods", "Currently available", numAvailableMongoPods, "Required replicas", tuffMongoDB.Spec.MongoReplicas)
-		diff := numAvailableMongoPods - tuffMongoDB.Spec.MongoReplicas
-		dpods := availableMongoPods[:diff]
-		for _, podToDelete := range dpods {
-			err = r.Delete(context.TODO(), &podToDelete)
-			if err != nil {
-				log.Error(err, "Failed to delete mongodb pod", "mongoPod.name", podToDelete.Name)
-				return ctrl.Result{}, err
-			}
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	if numAvailableMongoPods < tuffMongoDB.Spec.MongoReplicas {
-		log.Info("Scaling up mongodb pods", "Currently available", numAvailableMongoPods, "Required replicas", tuffMongoDB.Spec.MongoReplicas)
-		mongoPod := newMongoPodForCR(tuffMongoDB)
-		if err := controllerutil.SetControllerReference(tuffMongoDB, mongoPod, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-		err = r.Create(context.TODO(), mongoPod)
-		if err != nil {
-			log.Error(err, "Failed to create mongodb pod", "MongoPod.name", mongoPod.Name)
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-
+	createMongoDeployment(*instance)
 	return ctrl.Result{}, nil
 }
 
-func newMongoPodForCR(cr *appv1alpha1.TuffMongoDB) (mongoPod *corev1.Pod) {
-	tmLabels := map[string]string{
-		"app":     cr.Name,
-		"version": "v0.1",
-	}
-	mongoPod = &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: cr.Name + "-pod-",
-			Namespace:    cr.Namespace,
-			Labels:       tmLabels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:         cr.Spec.MongoContainerName,
-					Image:        cr.Spec.MongoImage,
-					Ports:        cr.Spec.MongoPorts,
-					VolumeMounts: cr.Spec.MongoVolumeMounts,
-					Command:      []string{"sleep", "16000"},
-				},
-			},
-			Volumes: cr.Spec.MongoVolumes,
-		},
+func createMongoDeployment(tmCRD appv1alpha1.TuffMongoDB) {
+
+	tuffLabels := map[string]string{
+		"app-name":  tmCRD.Spec.Name,
+		"component": tmCRD.Spec.Component,
 	}
 
-	return
+	// template := newPodTemplateSpec(context.TODO(), tmCRD)
+
+	dpl := deployment.New(tmCRD.Spec.Name, tmCRD.Spec.Namespace, tuffLabels, tmCRD.Spec.Replicas).
+		WithPaused(false).
+		Build()
+	fmt.Print(dpl)
+}
+
+/*
+func newPodTemplateSpec(ctx context.Context, tmCRD appv1alpha1.TuffMongoDB) corev1.PodTemplateSpec {
+
+		containers := []corev1.Container{
+			newMongoDBContainer(tmCRD),
+		}
+
+		podSpec := pod.NewSpec(tmCRD.Spec.Name, containers, tmCRD.Spec.Volumes).
+			Build()
+
+		return corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: *labels,
+			},
+			Spec: *podSpec,
+		}
+	}
+*/
+func newMongoDBContainer(tmCRD appv1alpha1.TuffMongoDB) corev1.Container {
+	return corev1.Container{
+		Name:            tmCRD.Spec.Name,
+		Image:           tmCRD.Spec.Image,
+		ImagePullPolicy: "IfNotPresent",
+		Ports:           tmCRD.Spec.Ports,
+		VolumeMounts:    tmCRD.Spec.VolumeMounts,
+	}
 }
 
 func (r *TuffMongoDBReconciler) SetupWithManager(mgr ctrl.Manager) error {

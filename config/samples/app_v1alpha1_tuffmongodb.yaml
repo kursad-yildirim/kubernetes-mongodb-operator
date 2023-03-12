@@ -9,16 +9,18 @@ metadata:
     app.kubernetes.io/created-by: kubernetes-mongodb-operator
   name: mongodb-tuff-1
 spec:
-  mongoContainerName: mongodbcontainer
-  mongoImage: image-registry.openshift-image-registry.svc:5000/tuff/busybox
-  mongoPorts:
+  name: tuffmongo
+  namespace: tuff
+  component: mongodb
+  image: image-registry.openshift-image-registry.svc:5000/tuff/busybox
+  ports:
   - containerPort: 27017
     name: mongodbport
     protocol: TCP
-  mongoReplicas: 1
-  mongoVolumeMounts:
+  replicas: 1
+  volumeMounts:
   - mountPath: /usr/mongo/data
     name: mongo-db-data
-  mongoVolumes:
+  volumes:
   - name: mongo-db-data
     volumeSource: pvc-mongo-db-data

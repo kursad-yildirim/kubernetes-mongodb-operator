@@ -1,19 +1,3 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1alpha1
 
 import (
@@ -26,12 +10,14 @@ import (
 
 // TuffMongoDBSpec defines the desired state of TuffMongoDB
 type TuffMongoDBSpec struct {
-	MongoReplicas      int32                  `json:"mongoReplicas,omitempty"`
-	MongoImage         string                 `json:"mongoImage,omitempty"`
-	MongoContainerName string                 `json:"mongoContainerName,omitEmpty"`
-	MongoPorts         []corev1.ContainerPort `json:"mongoPorts,omitEmpty"`
-	MongoVolumeMounts  []corev1.VolumeMount   `json:"mongoVolumeMounts,omitEmpty"`
-	MongoVolumes       []corev1.Volume        `json:"mongoVolumes,omitEmpty"`
+	Replicas     int32                  `json:"replicas,omitempty"`
+	Image        string                 `json:"image,omitempty"`
+	Name         string                 `json:"name,omitEmpty"`
+	Namespace    string                 `json:"namespace,omitEmpty"`
+	Component    string                 `json:"component,omitEmpty"`
+	Ports        []corev1.ContainerPort `json:"ports,omitEmpty"`
+	VolumeMounts []corev1.VolumeMount   `json:"volumeMounts,omitEmpty"`
+	Volumes      []corev1.Volume        `json:"volumes,omitEmpty"`
 }
 
 // TuffMongoDBStatus defines the observed state of TuffMongoDB

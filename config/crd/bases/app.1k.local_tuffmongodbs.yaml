@@ -35,11 +35,15 @@ spec:
           spec:
             description: TuffMongoDBSpec defines the desired state of TuffMongoDB
             properties:
-              mongoContainerName:
+              component:
                 type: string
-              mongoImage:
+              image:
                 type: string
-              mongoPorts:
+              name:
+                type: string
+              namespace:
+                type: string
+              ports:
                 items:
                   description: ContainerPort represents a network port in a single
                     container.
@@ -74,10 +78,10 @@ spec:
                   - containerPort
                   type: object
                 type: array
-              mongoReplicas:
+              replicas:
                 format: int32
                 type: integer
-              mongoVolumeMounts:
+              volumeMounts:
                 items:
                   description: VolumeMount describes a mounting of a Volume within
                     a container.
@@ -115,7 +119,7 @@ spec:
                   - name
                   type: object
                 type: array
-              mongoVolumes:
+              volumes:
                 items:
                   description: Volume represents a named volume in a pod that may
                     be accessed by any container in the pod.
@@ -1628,10 +1632,12 @@ spec:
                   type: object
                 type: array
             required:
-            - mongoContainerName
-            - mongoPorts
-            - mongoVolumeMounts
-            - mongoVolumes
+            - component
+            - name
+            - namespace
+            - ports
+            - volumeMounts
+            - volumes
             type: object
           status:
             description: TuffMongoDBStatus defines the observed state of TuffMongoDB
