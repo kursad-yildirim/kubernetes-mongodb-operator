@@ -1,5 +1,5 @@
 #!/bin/bash
 
-go mog tidy
+go mod tidy
 clear
 MATCH_NAMESPACE=tuff KUBECONFIG=/home/kyildiri/.kube/config make run
